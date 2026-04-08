@@ -60,7 +60,7 @@ jobs:
     - name: 构建Web应用
       run: npm run build
 
-    - - name: 管理Android平台
+    - name: 管理Android平台
       run: |
         if [ -d "android" ]; then
           echo "删除旧的Android平台重新初始化..."
