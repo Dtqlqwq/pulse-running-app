@@ -60,16 +60,14 @@ jobs:
     - name: 构建Web应用
       run: npm run build
 
-    - name: 管理Android平台
+    - - name: 管理Android平台
       run: |
         if [ -d "android" ]; then
-          echo "✅ Android平台已存在，更新平台配置..."
-          npx cap update android
-        else
-          echo "正在添加Android平台..."
-          npx cap add android
+          echo "删除旧的Android平台重新初始化..."
+          rm -rf android
         fi
-
+        echo "添加Android平台..."
+        npx cap add android
     - name: 增量更新Android权限配置
       run: |
         echo "🔧 运行增量权限更新脚本..."
