@@ -4,12 +4,8 @@ const config: CapacitorConfig = {
   appName: 'Pulse - 跑步追踪',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
-    allowNavigation: [
-      '*.supabase.co',
-      '*.siliconflow.cn',
-      'pacex.top'
-    ]
+    url: 'https://www.pacex.top',
+    cleartext: true
   },
   plugins: {
     Geolocation: {
