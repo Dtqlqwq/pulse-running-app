@@ -23,7 +23,7 @@ jobs:
 
     - name: 安装依赖
       run: |
-        npm ci
+        npm ci --legacy-peer-deps
         # 检查Capacitor依赖是否已安装，避免重复安装
         if ! npm list @capacitor/core 2>/dev/null | grep -q "@capacitor/core"; then
           echo "安装Capacitor依赖..."
