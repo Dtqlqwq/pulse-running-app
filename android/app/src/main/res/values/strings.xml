@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pulse - 跑步追踪</string>
+    <string name="title_activity_main">Pulse - 跑步追踪</string>
+    <string name="package_name">com.pacex.app</string>
+    <string name="custom_url_scheme">com.pacex.app</string>
+</resources>
