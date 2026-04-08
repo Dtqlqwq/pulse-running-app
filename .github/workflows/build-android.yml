@@ -24,7 +24,13 @@ jobs:
     - name: 安装依赖
       run: |
         npm ci
-        npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/geolocation --force
+        # 检查Capacitor依赖是否已安装，避免重复安装
+        if ! npm list @capacitor/core 2>/dev/null | grep -q "@capacitor/core"; then
+          echo "安装Capacitor依赖..."
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/geolocation
+        else
+          echo "✅ Capacitor依赖已安装"
+        fi
 
     - name: 检查Capacitor配置
       run: |
@@ -46,77 +52,29 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       run: |
-        echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" > .env
-        echo "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY" >> .env
-        echo "✅ 环境变量已设置"
+        # 创建.env.local文件（项目实际使用的文件）
+        echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" > .env.local
+        echo "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY" >> .env.local
+        echo "✅ 环境变量已设置到.env.local"
 
     - name: 构建Web应用
       run: npm run build
 
-    - name: 添加Android平台
-      run: npx cap add android
-
-    - name: 配置Android权限
+    - name: 管理Android平台
       run: |
-        # 备份原始AndroidManifest.xml
-        cp android/app/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml.backup
-        # 生成包含必要权限的AndroidManifest.xml
-        cat > android/app/src/main/AndroidManifest.xml << 'EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+        if [ -d "android" ]; then
+          echo "✅ Android平台已存在，更新平台配置..."
+          npx cap update android
+        else
+          echo "正在添加Android平台..."
+          npx cap add android
+        fi
 
-            <application
-                android:allowBackup="true"
-                android:icon="@mipmap/ic_launcher"
-                android:label="@string/app_name"
-                android:roundIcon="@mipmap/ic_launcher_round"
-                android:supportsRtl="true"
-                android:theme="@style/AppTheme">
-
-                <activity
-                    android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
-                    android:name=".MainActivity"
-                    android:label="@string/title_activity_main"
-                    android:theme="@style/AppTheme.NoActionBarLaunch"
-                    android:launchMode="singleTask"
-                    android:exported="true">
-
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN" />
-                        <category android:name="android.intent.category.LAUNCHER" />
-                    </intent-filter>
-
-                    <!-- Deep link support for Supabase authentication -->
-                    <intent-filter>
-                        <action android:name="android.intent.action.VIEW" />
-                        <category android:name="android.intent.category.DEFAULT" />
-                        <category android:name="android.intent.category.BROWSABLE" />
-                        <data android:scheme="com.pacex.app" />
-                    </intent-filter>
-
-                </activity>
-
-                <provider
-                    android:name="androidx.core.content.FileProvider"
-                    android:authorities="${applicationId}.fileprovider"
-                    android:exported="false"
-                    android:grantUriPermissions="true">
-                    <meta-data
-                        android:name="android.support.FILE_PROVIDER_PATHS"
-                        android:resource="@xml/file_paths"></meta-data>
-                </provider>
-            </application>
-
-            <!-- Permissions -->
-
-            <uses-permission android:name="android.permission.INTERNET" />
-            <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-            <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-            <uses-permission android:name="android.permission.CAMERA" />
-            <uses-permission android:name="android.permission.RECORD_AUDIO" />
-        </manifest>
-        EOF
+    - name: 增量更新Android权限配置
+      run: |
+        echo "🔧 运行增量权限更新脚本..."
+        chmod +x .github/scripts/update-android-permissions.sh
+        ./.github/scripts/update-android-permissions.sh
 
     - name: 同步到Android项目
       run: npx cap sync android
@@ -126,6 +84,16 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
+
+    - name: 缓存Gradle依赖
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
 
     - name: 构建调试版APK
       run: |
@@ -145,3 +113,10 @@ jobs:
         echo "✅ APK构建成功！"
         echo "📱 下载链接将在工作流完成后出现在Artifacts区域"
         echo "🔧 如需发布版APK，请配置签名密钥后重新运行"
+
+    - name: 清理工作
+      if: always()
+      run: |
+        echo "🧹 清理临时文件..."
+        rm -f .env.local
+        echo "✅ 临时文件已清理"
